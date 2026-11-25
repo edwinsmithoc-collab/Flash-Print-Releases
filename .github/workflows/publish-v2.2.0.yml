@@ -1,0 +1,51 @@
+name: publish-v2.2.0
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v2.2.0.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar desde el espejo y comprobar SHA-256
+        run: |
+          set -euo pipefail
+          BASE=https://flashprint-acer.surge.sh
+          mkdir -p out
+          for i in $(seq -w 0 13); do
+            curl -fsSL "$BASE/partes/FlashPrint-x64.parte${i}.bin" -o "setup.$i"
+          done
+          cat setup.* > out/FlashPrint-Setup-2.2.0-x64.exe
+          echo 'd0774fc14718c035c5a3d3d1172d67626ee96baec16d45a9f7bf74ca1ca034b5  out/FlashPrint-Setup-2.2.0-x64.exe' | sha256sum -c
+          for i in $(seq -w 0 13); do
+            curl -fsSL "$BASE/espejo-2.2.0/portable.parte${i}.bin" -o "port.$i"
+          done
+          cat port.* > out/FlashPrint-Portable-2.2.0-x64.exe
+          echo '85d2e29de6f7dcffee7be83208e344c9cb3bdc4f98df09d68a98b232f5a2dc97  out/FlashPrint-Portable-2.2.0-x64.exe' | sha256sum -c
+          curl -fsSL "$BASE/espejo-2.2.0/FlashPrint-Setup-2.2.0-x64.exe.blockmap" -o out/FlashPrint-Setup-2.2.0-x64.exe.blockmap
+          curl -fsSL "$BASE/espejo-2.2.0/latest.yml" -o out/latest.yml
+          echo 'c0cefd270757de56b6df7d1941abe2c93835eff28337f447b8d546e3ccb4c83d  out/FlashPrint-Setup-2.2.0-x64.exe.blockmap' | sha256sum -c
+          echo '1639368af3e9e5f91c36e6bb39704b0acb2f144b93d7f43657b7045c5cbb5733  out/latest.yml' | sha256sum -c
+          ls -l out
+      - name: Crear la versión v2.2.0
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create v2.2.0 \
+            out/FlashPrint-Setup-2.2.0-x64.exe \
+            out/FlashPrint-Portable-2.2.0-x64.exe \
+            out/FlashPrint-Setup-2.2.0-x64.exe.blockmap \
+            out/latest.yml \
+            --repo edwinsmithoc-collab/Flash-Print-Releases \
+            --title "FlashPrint 2.2.0" \
+            --notes "Módulo Foto de DNI (DNI, pasaporte, visado e internacional) con las 3 plantillas de la tienda (4+1 a 7,50 €, DNI 8 a 8,50 € y 8+2 a 9,50 €), galería de composiciones de PC Print en 10×15 y 15×20, medidas oficiales por país, guía de la cara, marcas de corte y hojas a tamaño real a 300 ppp.
+
+Instalador (NSIS) y versión portable para Windows 7 / 8.1 / 10 / 11 de 64 bits.
+
+Si tienes la 2.0.1 o la 2.1.0, se actualiza sola. Si tienes la 2.0.2, abre este instalador una vez (la 2.0.2 avisa de la nueva versión pero no puede bajarla sola). En todos los casos se conservan pedidos, ajustes, historial, fotos y la activación.
+
+SHA-256 del instalador: d0774fc14718c035c5a3d3d1172d67626ee96baec16d45a9f7bf74ca1ca034b5
+Página de descarga: https://flashprint-acer.surge.sh/"
